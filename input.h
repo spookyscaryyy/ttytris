@@ -7,7 +7,7 @@
 
 #define TERM_FD STDIN_FILENO
 
-#define KEYBOARD_PATH "/dev/input/event8"
+#define KEYBOARD_PATH "/dev/input/event9"
 
 #define KEY_COUNT 250
 #define PRESSED 1

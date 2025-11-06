@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 ttytris
 .ccls-cache/
+.vscode/
+.cache/
+compile_commands.json

@@ -85,6 +85,11 @@ void input_init()
 
     // setup keyboard input
     state.input_fd = fopen(KEYBOARD_PATH, "r");
+    if (state.input_fd == NULL)
+    {
+        perror("Keyboard Open");
+        abort();
+    }
     for (int i = 0; i < KEY_COUNT; i++)
     {
         state.keys[i] = false;

@@ -1,14 +1,13 @@
-
 #include <stdio.h>
-#include <wchar.h>
 #include <time.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
 #include "input.h"
 #include "game.h"
+#include "termwrapper.h"
+#include "assets.h"
 
 
 typedef enum block_type_impl
@@ -37,10 +36,6 @@ typedef enum block_orient_impl
 
 #define BLOCK_CNT 7
 #define MINO_CNT 4
-
-#define BLOCK L"▇▇"
-#define GHOST L"▒▒"
-#define SPACER L"  "
 
 #define KICK_CNT 5
 #define ROT_CNT 4
@@ -800,7 +795,7 @@ bool game_loop()
     // parse controls
     if (key_pressed(KEY_P))
     {
-        wprintf(L"\e[13;20HPAUSED");
+        TSW_DrawTextYX("PAUSED", 13, 20);
         state.paused = !state.paused;
     }
     if (state.paused)
@@ -912,38 +907,46 @@ bool game_loop()
     }
 
     // draw screen
-    wprintf(L"\e[1;13H");
+    TSW_DrawTextYX("", 1, 13);
     for (int i = 0; i < ROW_CNT - 1; i++)
     {
         for (int j = 1; j < COL_CNT - 1; j++)
         {
             if (state.playfield[i][j].has_block)
             {
-                wprintf(L"\e[48;5;%hdm  \e[m", state.playfield[i][j].color);
+                TSW_ChangeBGColor((int)state.playfield[i][j].color);
+                TSW_DrawBlock();
+                TSW_ClearColor();
             }
             else if (state.playfield[i][j].is_ghost)
             {
-                wprintf(L"\e[38;5;%hdm"GHOST L"\e[m", state.playfield[i][j].color);
+                TSW_ChangeFGColor((int)state.playfield[i][j].color);
+                TSW_DrawGhost();
+                TSW_ClearColor();
             }
             else
             {
                 // draw the top board instead of blank
                 if (i != 1)
                 {
-                    wprintf(SPACER);
+                    TSW_DrawSpacer();
                 }
                 else
                 {
-                    wprintf(L"══");
+                    TSW_DrawBoardHorizontal();
                 }
             }
         }
-        wprintf(L"\e[20D\e[B");
+        TSW_NextLine();
     }
 
-    wprintf(L"\e[5;35H %7d", state.score);
-    wprintf(L"\e[10;35H %5d", state.lines);
-    wprintf(L"\e[15;35H %5d", state.level);
+    char buf[8];
+    snprintf(buf, 8, "%7d", state.score);
+    TSW_DrawTextYX(buf, 5, 35);
+    snprintf(buf, 8, "%5d", state.lines);
+    TSW_DrawTextYX(buf, 10, 35);
+    snprintf(buf, 8, "%5d", state.level);
+    TSW_DrawTextYX(buf, 15, 35);
 
     draw_display_block(HOLD_BLOCK_ROW, state.hold);
     draw_display_block(NEXT_BLOCK_ROW, query_7bag());
@@ -990,44 +993,29 @@ static block init_block(block_type type)
 
 static void draw_display_block(int row_origin, block_type type)
 {
-    wprintf(L"\e[%d;3H         ", row_origin - 1);
-    wprintf(L"\e[%d;3H         ", row_origin);
-    wprintf(L"\e[%d;3H         ", row_origin + 1);
+    TSW_DrawTextYX("         ", row_origin - 1, 3);
+    TSW_DrawTextYX("         ", row_origin, 3);
+    TSW_DrawTextYX("         ", row_origin + 1, 3);
     if (type == BLOCK_NULL)
     {
         return;
     }
     block n = init_block(type);
-    wprintf(L"\e[48;5;%hdm", n.color);
+    TSW_ChangeBGColor((int)n.color);
     for (int i = 0; i < MINO_CNT; i++)
     {
         if (type == BLOCK_I || type == BLOCK_O)
         {
-            wprintf(L"\e[%d;5H", row_origin);
+            TSW_DrawTextYX("", row_origin, 5);
         }
         else
         {
-            wprintf(L"\e[%d;6H", row_origin);
+            TSW_DrawTextYX("", row_origin, 6);
         }
-        if (n.offsets[i][0] < 0)
-        {
-            wprintf(L"\e[%hdA", -1 * n.offsets[i][0]);
-        }
-        else if (n.offsets[i][0] > 0)
-        {
-            wprintf(L"\e[%hdB", n.offsets[i][0]);
-        }
-        if (n.offsets[i][1] < 0)
-        {
-            wprintf(L"\e[%hdD", -2 * n.offsets[i][1]);
-        }
-        else if (n.offsets[i][1] > 0)
-        {
-            wprintf(L"\e[%hdC", 2 * n.offsets[i][1]);
-        }
-        wprintf(L"  ");
+        TSW_ShiftCursor(n.offsets[i][0], n.offsets[i][1]);
+        TSW_DrawBlock();
     }
-    wprintf(L"\e[m");
+    TSW_ClearColor();
 }
 
 void game_shutdown()
@@ -1046,27 +1034,5 @@ void game_shutdown()
 
 void draw_gamescreen()
 {
-    wprintf(L"                                                   \n"
-            L"╔══════════╦════════════════════╦═══════════╗\n"
-            L"║   HOLD   ║                    ║   SCORE   ║\n"
-            L"║          ║                    ║           ║\n"
-            L"║          ║                    ║           ║\n"
-            L"║          ║                    ║           ║\n"
-            L"║          ║                    ╠═════════╦═╝\n"
-            L"╠══════════╣                    ║  LINES  ║\n"
-            L"║   NEXT   ║                    ║         ║\n"
-            L"║          ║                    ║         ║\n"
-            L"║          ║                    ║         ║\n"
-            L"║          ║                    ╠═════════╣\n"
-            L"║          ║                    ║  LEVEL  ║\n"
-            L"╚══════════╣                    ║         ║\n"
-            L"           ║                    ║         ║\n"
-            L"           ║                    ║         ║\n"
-            L"           ║                    ╠═════════╝\n"
-            L"           ║                    ║\n"
-            L"           ║                    ║\n"
-            L"           ║                    ║\n"
-            L"           ║                    ║\n"
-            L"           ║                    ║\n"
-            L"           ╚════════════════════╝\n");
+    TSW_DrawText(gamescreen);
 }

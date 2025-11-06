@@ -1,9 +1,7 @@
-
 #include <stdio.h>
 #include <signal.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <locale.h>
 #include <stdbool.h>
 #include <semaphore.h>
 #include <errno.h>
@@ -11,6 +9,7 @@
 #include "menu.h"
 #include "game.h"
 #include "input.h"
+#include "termwrapper.h"
 
 sem_t input_ready;
 
@@ -41,16 +40,13 @@ static void main_shutdown()
     input_shutdown();
     pthread_join(state.input_thread, NULL);
     game_shutdown();
-    wprintf(ERASE_SCREEN);
-    wprintf(SHOW_CURSOR);
-    wprintf(ORIG_BUFFER);
+    TSW_ScreenClear();
+    TSW_DrawShowPen();
+    TSW_ScreenSwitchBuffer();
 }
 
 static void main_init()
 {
-    // enable wide chars
-    setlocale(LC_ALL, "");
-
     if (-1 == sem_init(&input_ready, 0, 0))
     {
         perror("sem_init");
@@ -90,10 +86,10 @@ static void main_init()
 
     state.screen = LOSS_TO_MENU;
 
-    wprintf(ALT_BUFFER);
-    wprintf(ERASE_SCREEN);
-    wprintf(RESET_CURSOR);
-    wprintf(HIDE_CURSOR);
+    TSW_ScreenSwitchBuffer();
+    TSW_ScreenClear();
+    TSW_DrawResetPen();
+    TSW_DrawHidePen();
 }
 
 static void sig_handler(int sig, siginfo_t* info, void* ucontext)
@@ -144,7 +140,8 @@ static void main_loop()
             }
             break;
             case(MENU_TO_GAME):
-            wprintf(ERASE_SCREEN RESET_CURSOR);
+            TSW_ScreenClear();
+            TSW_DrawResetPen();
             draw_gamescreen();
             game_init(state.level_select);
             state.screen = GAME_STATE;
@@ -154,7 +151,8 @@ static void main_loop()
             state.screen = LOSS_STATE;
             break;
             case(LOSS_TO_MENU):
-            wprintf(ERASE_SCREEN RESET_CURSOR);
+            TSW_ScreenClear();
+            TSW_DrawResetPen();
             draw_menuscreen();
             state.screen = MENU_STATE;
             break;

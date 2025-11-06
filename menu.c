@@ -1,9 +1,11 @@
-#include <stdio.h>
-#include <wchar.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "menu.h"
 #include "input.h"
+#include "termwrapper.h"
+#include "assets.h"
 
 #define FLASH_FRAMES 3
 
@@ -45,7 +47,8 @@ int menu_loop()
             flash_cooldown = FLASH_FRAMES;
         }
     }
-    wprintf(L"\e[29;35H%d", level_select);
+    char buf[2] = {level_select + '0', '\0'};
+    TSW_DrawTextYX(buf, 18, 35);
     return 0;
 }
 
@@ -56,74 +59,111 @@ bool loss_loop()
 
 static void flash_left()
 {
-    wprintf(L"\e[27;24H\e[48;5;15m \e[m");
-    wprintf(L"\e[28;22H\e[48;5;15m   \e[m");
-    wprintf(L"\e[29;22H\e[48;5;15m   \e[m");
-    wprintf(L"\e[30;24H\e[48;5;15m \e[m");
+    char* save = NULL;
+    char* cpy = malloc(strlen(arrow_fill)+1);
+    memcpy(cpy, arrow_fill, strlen(arrow_fill)+1);
+    char* token = strtok_r(cpy, "\x03", &save);
+
+    TSW_ChangeBGColor(15);
+    TSW_DrawTextYX(token, 16, 20);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 17, 18);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 18, 18);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 19, 20);
+
+    TSW_ClearColor();
+    free(cpy);
+    cpy = NULL;
 }
 
 static void flash_right()
 {
-    wprintf(L"\e[27;45H\e[48;5;15m \e[m");
-    wprintf(L"\e[28;45H\e[48;5;15m   \e[m");
-    wprintf(L"\e[29;45H\e[48;5;15m   \e[m");
-    wprintf(L"\e[30;45H\e[48;5;15m \e[m");
+    char* save = NULL;
+    char* cpy = malloc(strlen(arrow_fill)+1);
+    memcpy(cpy, arrow_fill, strlen(arrow_fill)+1);
+    char* token = strtok_r(cpy, "\x03", &save);
+
+    TSW_ChangeBGColor(15);
+    TSW_DrawTextYX(token, 16, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 17, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 18, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 19, 50);
+
+    TSW_ClearColor();
+    free(cpy);
+    cpy = NULL;
 }
 
 static void clear_flash()
 {
-    wprintf(L"\e[27;24H\e[48;5;0m \e[m");
-    wprintf(L"\e[28;22H\e[48;5;0m   \e[m");
-    wprintf(L"\e[29;22H\e[48;5;0m   \e[m");
-    wprintf(L"\e[30;24H\e[48;5;0m \e[m");
+    char* save = NULL;
+    char* cpy = malloc(strlen(arrow_fill)+1);
+    memcpy(cpy, arrow_fill, strlen(arrow_fill)+1);
+    char* token = strtok_r(cpy, "\x03", &save);
 
-    wprintf(L"\e[27;45H\e[48;5;0m \e[m");
-    wprintf(L"\e[28;45H\e[48;5;0m   \e[m");
-    wprintf(L"\e[29;45H\e[48;5;0m   \e[m");
-    wprintf(L"\e[30;45H\e[48;5;0m \e[m");
+    TSW_ChangeBGColor(0);
+    TSW_DrawTextYX(token, 16, 20);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 17, 18);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 18, 18);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 19, 20);
+    TSW_ClearColor();
+
+    save = NULL;
+    memcpy(cpy, arrow_fill, strlen(arrow_fill)+1);
+    token = strtok_r(cpy, "\x03", &save);
+
+    TSW_ChangeBGColor(0);
+    TSW_DrawTextYX(token, 16, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 17, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 18, 50);
+    token = strtok_r(NULL, "\x03", &save);
+
+    TSW_DrawTextYX(token, 19, 50);
+
+    TSW_ClearColor();
+
+    free(cpy);
+    cpy = NULL;
 }
 
 void draw_menuscreen()
 {
-    wprintf(L"\n"
-            L"\n"
-            L"\n"
-            L"    █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█\n"
-            L"    █                                                           █\n"
-            L"    █  ┏━━━━━━━┓ ┏━━━━━┓ ┏━━━━━━━┓ ┏━━━━━━━┓ ┏━━━━━━━┓ ┏━━━━━┓  █\n"
-            L"    █  ┗━━┓ ┏━━┛ ┃ ┏━━━┛ ┗━━┓ ┏━━┛ ┃ ┏━━━┓ ┃ ┗━━┓ ┏━━┛ ┃ ┏━━━┛  █\n"
-            L"    █     ┃ ┃    ┃ ┗━━━┓    ┃ ┃    ┃ ┗━━━┛ ┃    ┃ ┃    ┃ ┗━━━┓  █\n"
-            L"    █     ┃ ┃    ┃ ┏━━━┛    ┃ ┃    ┃ ┏━┓  ┏┛    ┃ ┃    ┗━━━┓ ┃  █\n"
-            L"    █     ┃ ┃    ┃ ┗━━━┓    ┃ ┃    ┃ ┃ ┗┓ ┗┓ ┏━━┛ ┗━━┓ ┏━━━┛ ┃  █\n"
-            L"    █     ┗━┛    ┗━━━━━┛    ┗━┛    ┗━┛  ┗━━┛ ┗━━━━━━━┛ ┗━━━━━┛  █\n"
-            L"    █                                                           █\n"
-            L"    █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄                   ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        █                   █\n"
-            L"                        ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\n"
-            L"                                             \n"
-            L"                                             \n"
-            L"                      ┌─┐  ┌─────────────┐ ┌─┐     \n"
-            L"                    ┌─┘ │  │             │ │ └─┐   \n"
-            L"                  ┌─┘   │  │    LEVEL    │ │   └─┐  \n"
-            L"                  └─┐   │  │      9      │ │   ┌─┘  \n"
-            L"                    └─┐ │  │             │ │ ┌─┘   \n"
-            L"                      └─┘  └─────────────┘ └─┘     \n"
-            L"\n");
+    TSW_DrawText(menuscreen);
 }
 
 void draw_lossscreen()
 {
-    wprintf(L"\e[11;15H┌──────────────┐\n"
-            L"\e[12;15H│  GAME  OVER  │\n"
-            L"\e[13;15H│              │\n"
-            L"\e[14;15H│ PRESS  ENTER │\n"
-            L"\e[15;15H└──────────────┘\n");
+    char* save = NULL;
+    char* cpy = malloc(strlen(lossscreen)+1);
+    memcpy(cpy, lossscreen, strlen(lossscreen)+1);
+    char* token = strtok_r(cpy, "\x03", &save);
+    int i = 11;
+    while (token != NULL)
+    {
+        TSW_DrawTextYX(token, i++, 15);
+        token = strtok_r(NULL, "\x03", &save);
+    }
+    free(cpy);
+    cpy = NULL;
 }
