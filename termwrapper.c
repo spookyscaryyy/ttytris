@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "termwrapper.h"
 
@@ -18,12 +19,12 @@ void TSW_ScreenSwitchBuffer()
     main_buffer = !main_buffer;
 }
 
-void TSW_ChangeFGColor(int color)
+void TSW_ChangeFGColor(uint8_t color)
 {
     printf("\e[38;5;%dm", color);
 }
 
-void TSW_ChangeBGColor(int color)
+void TSW_ChangeBGColor(uint8_t color)
 {
     printf("\e[48;5;%dm", color);
 }
@@ -84,7 +85,7 @@ void TSW_NextLine()
     TSW_DrawText("\e[20D\e[B");
 }
 
-void TSW_ShiftCursor(int row_s, int col_s)
+void TSW_ShiftCursor(int8_t row_s, int8_t col_s)
 {
     if (row_s < 0)
     {
@@ -104,7 +105,7 @@ void TSW_ShiftCursor(int row_s, int col_s)
     }
 }
 
-void TSW_DrawTextYX(const char* text, int y, int x)
+void TSW_DrawTextYX(const char* text, uint8_t y, uint8_t x)
 {
     printf("\e[%d;%dH%s", y, x, text);
 }

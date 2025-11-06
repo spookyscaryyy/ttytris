@@ -1,14 +1,16 @@
 #ifndef TERMWRAPPER_H_
 #define TERMWRAPPER_H_
 
+#include <stdint.h>
+
 /* General Screen Controls */
 void TSW_ScreenSwitchBuffer();
 
 /* Screen Drawing */
 // x and y are reversed since terminal escape codes use row,col
-void TSW_DrawTextYX(const char* text, int y, int x);
-void TSW_ChangeFGColor(int color);
-void TSW_ChangeBGColor(int color);
+void TSW_DrawTextYX(const char* text, uint8_t y, uint8_t x);
+void TSW_ChangeFGColor(uint8_t color);
+void TSW_ChangeBGColor(uint8_t color);
 void TSW_DrawText(const char* text);
 void TSW_ScreenClear();
 void TSW_DrawResetPen();
@@ -21,7 +23,7 @@ void TSW_DrawBoardVertical();
 void TSW_DrawBoardHorizontal();
 void TSW_ClearColor();
 void TSW_NextLine();
-void TSW_ShiftCursor(int row_s, int col_s);
+void TSW_ShiftCursor(int8_t row_s, int8_t col_s);
 
 /* Keyboard Input */
 

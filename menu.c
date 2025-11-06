@@ -13,9 +13,9 @@ static void flash_left();
 static void flash_right();
 static void clear_flash();
 
-int menu_loop()
+uint8_t menu_loop()
 {
-    static int flash_cooldown = 0;
+    static int8_t flash_cooldown = 0;
     if (flash_cooldown > 0)
     {
         flash_cooldown--;
@@ -24,7 +24,7 @@ int menu_loop()
     {
         clear_flash();
     }
-    static int level_select = 1;
+    static uint8_t level_select = 1;
     if (key_pressed(KEY_ENTER))
     {
         return level_select;
@@ -158,7 +158,7 @@ void draw_lossscreen()
     char* cpy = malloc(strlen(lossscreen)+1);
     memcpy(cpy, lossscreen, strlen(lossscreen)+1);
     char* token = strtok_r(cpy, "\x03", &save);
-    int i = 11;
+    uint8_t i = 11;
     while (token != NULL)
     {
         TSW_DrawTextYX(token, i++, 15);

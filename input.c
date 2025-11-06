@@ -11,6 +11,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <semaphore.h>
+#include <stdint.h>
 
 extern sem_t input_ready;
 
@@ -90,7 +91,7 @@ void input_init()
         perror("Keyboard Open");
         abort();
     }
-    for (int i = 0; i < KEY_COUNT; i++)
+    for (uint8_t i = 0; i < KEY_COUNT; i++)
     {
         state.keys[i] = false;
         state.keys_prev[i] = false;

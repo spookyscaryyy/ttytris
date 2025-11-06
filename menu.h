@@ -2,8 +2,9 @@
 #define MENU_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
-int menu_loop();
+uint8_t menu_loop();
 void draw_menuscreen();
 
 bool loss_loop();

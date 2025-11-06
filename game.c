@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "input.h"
 #include "game.h"
@@ -31,6 +32,13 @@ typedef enum block_orient_impl
 
 } block_orient;
 
+typedef enum t_spin_state_impl
+{
+    TSPIN_NONE = 0,
+    TSPIN_MINI = 1,
+    TSPIN_NORM = 2
+} t_spin_state;
+
 #define ROW_CNT 23
 #define COL_CNT 12
 
@@ -49,17 +57,13 @@ typedef enum block_orient_impl
 #define NEXT_BLOCK_ROW 12
 #define HOLD_BLOCK_ROW 6
 
-#define TSPIN_NONE 0
-#define TSPIN_MINI 1
-#define TSPIN_NORM 2
-
 #define DAS_STARTUP 16
 #define DAS_DELAY 2
 
 // cw rotate = swap row and col, invert col
 // ccw rotate = invert col, swap row and col
 
-static const short BLOCK_O_KICKS[KICK_CNT][ROT_CNT][2] =
+static const int8_t BLOCK_O_KICKS[KICK_CNT][ROT_CNT][2] =
 {
     {
         {0,0},
@@ -69,7 +73,7 @@ static const short BLOCK_O_KICKS[KICK_CNT][ROT_CNT][2] =
     }
 };
 
-static const short BLOCK_I_KICKS[KICK_CNT][ROT_CNT][2] =
+static const int8_t BLOCK_I_KICKS[KICK_CNT][ROT_CNT][2] =
 {
     {
         {0,0},
@@ -97,7 +101,7 @@ static const short BLOCK_I_KICKS[KICK_CNT][ROT_CNT][2] =
     }
 };
 
-static const short BLOCK_JLSTZ_KICKS[KICK_CNT][ROT_CNT][2] =
+static const int8_t BLOCK_JLSTZ_KICKS[KICK_CNT][ROT_CNT][2] =
 {
     {
         {0,0},
@@ -131,7 +135,7 @@ static const short BLOCK_JLSTZ_KICKS[KICK_CNT][ROT_CNT][2] =
     }
 };
 
-static const short BLOCK_OFFSETS[BLOCK_CNT][MINO_CNT][2] = 
+static const int8_t BLOCK_OFFSETS[BLOCK_CNT][MINO_CNT][2] = 
 {
     // BLOCK_I
     {
@@ -196,10 +200,10 @@ typedef struct block_impl
     block_type type;
     block_orient orient;
     bool set;
-    short row;
-    short col; 
-    short color;
-    short offsets[MINO_CNT][2];
+    int8_t row;
+    int8_t col; 
+    uint8_t color;
+    int8_t offsets[MINO_CNT][2];
 
 } block;
 
@@ -209,7 +213,7 @@ typedef struct field_unit_impl
     bool is_falling;
     bool is_wall;
     bool is_ghost;
-    short color;
+    uint8_t color;
 } field_unit;
 
 typedef struct game_state_impl
@@ -224,38 +228,38 @@ typedef struct game_state_impl
     bool last_rotate;
     bool lost;
     bool paused;
-    int bag_idx;
-    int level;
-    int last_kick;
-    int combo;
-    int tspin_state;
-    int grace_moves;
-    int lines;
-    int score;
-    int step_count;
-    int set_grace_count;
-    int das_startup;
-    int das;
+    int8_t bag_idx;
+    uint8_t level;
+    int8_t last_kick;
+    int32_t combo;
+    t_spin_state tspin_state;
+    int8_t grace_moves;
+    int8_t step_count;
+    int8_t set_grace_count;
+    int8_t das_startup;
+    int8_t das;
+    uint32_t lines;
+    uint32_t score;
 } game_state;
 static game_state state;
 
-static int calc_step(int slevel);
+static uint8_t calc_step(uint8_t slevel);
 static void spawn_block(block_type type);
 static void set_block();
-static void calc_score(int lines);
-static int detect_tspin();
+static void calc_score(int32_t lines);
+static t_spin_state detect_tspin();
 
-static bool check_shift(block* falling, short row_s, short col_s);
-static void shift_block(block* falling, short row_s, short col_s);
+static bool check_shift(block* falling, int8_t row_s, int8_t col_s);
+static void shift_block(block* falling, int8_t row_s, int8_t col_s);
 static void block_state(bool enable);
 
 static block init_block(block_type type);
-static void draw_display_block(int row_origin, block_type type);
+static void draw_display_block(int8_t row_origin, block_type type);
 
-static void rotate_block(short change);
-static bool kick_block(block* falling, const short block_kicks[KICK_CNT][ROT_CNT][2], short change);
+static void rotate_block(int8_t change);
+static bool kick_block(block* falling, const int8_t block_kicks[KICK_CNT][ROT_CNT][2], int8_t change);
 
-static short calc_ghost_offset();
+static int8_t calc_ghost_offset();
 static void move_ghost();
 
 static void hard_drop();
@@ -266,11 +270,11 @@ static void load_7bag();
 static block_type query_7bag();
 static block_type pop_7bag();
 
-static bool check_line(short row);
-static int clear_lines();
+static bool check_line(int8_t row);
+static uint32_t clear_lines();
 
 static void clear_dyn_mem();
-static void swap(short* a, short* b);
+static void swap(int8_t* a, int8_t* b);
 
 
 static void hard_drop()
@@ -279,7 +283,7 @@ static void hard_drop()
     {
         return;
     }
-    int drop_amt = calc_ghost_offset();
+    int8_t drop_amt = calc_ghost_offset();
     shift_block(state.falling, drop_amt, 0);
     state.score += 2 * drop_amt;
     set_block();
@@ -319,13 +323,13 @@ static void clear_dyn_mem()
 
 static void load_7bag()
 {
-    for (int i = 0; i < BLOCK_CNT; i++)
+    for (block_type i = 0; i < BLOCK_CNT; i++)
     {
-        state.block_bag[i] = (block_type)i;
+        state.block_bag[i] = i;
     }
-    for (int i = BLOCK_CNT - 1; i >= 1; i--)
+    for (uint8_t i = BLOCK_CNT - 1; i >= 1; i--)
     {
-        int j = rand() % i;
+        int8_t j = rand() % i;
         block_type tmp = state.block_bag[i];
         state.block_bag[i] = state.block_bag[j];
         state.block_bag[j] = tmp;
@@ -349,7 +353,7 @@ static block_type pop_7bag()
     return ret;
 }
 
-static void rotate_block(short change)
+static void rotate_block(int8_t change)
 {
     if (state.falling == NULL)
     {
@@ -358,7 +362,7 @@ static void rotate_block(short change)
     block falling = *state.falling;
 
     // perform op on fake block first
-    for (int i = 0; i < MINO_CNT; i++)
+    for (uint8_t i = 0; i < MINO_CNT; i++)
     {
         if (change == KICK_BLOCK_CW)
         {
@@ -408,13 +412,13 @@ static void move_ghost()
     state.ghost->row += calc_ghost_offset();
 }
 
-static bool kick_block(block* falling, const short block_kicks[KICK_CNT][ROT_CNT][2], short change)
+static bool kick_block(block* falling, const int8_t block_kicks[KICK_CNT][ROT_CNT][2], int8_t change)
 {
-    short adj_orient = (falling->orient + ROT_CNT + change) % ROT_CNT;
-    for (int i = 0; i < KICK_CNT; i++)
+    int8_t adj_orient = (falling->orient + ROT_CNT + change) % ROT_CNT;
+    for (uint8_t i = 0; i < KICK_CNT; i++)
     {
-        short row_off = block_kicks[i][falling->orient][0] - block_kicks[i][adj_orient][0];
-        short col_off = block_kicks[i][falling->orient][1] - block_kicks[i][adj_orient][1];
+        int8_t row_off = block_kicks[i][falling->orient][0] - block_kicks[i][adj_orient][0];
+        int8_t col_off = block_kicks[i][falling->orient][1] - block_kicks[i][adj_orient][1];
         if (check_shift(falling, row_off, col_off))
         {
             shift_block(falling, row_off, col_off);
@@ -427,9 +431,9 @@ static bool kick_block(block* falling, const short block_kicks[KICK_CNT][ROT_CNT
     return false;
 }
 
-static void swap(short* a, short* b)
+static void swap(int8_t* a, int8_t* b)
 {
-    short tmp = *a;
+    int8_t tmp = *a;
     *a = *b;
     *b = tmp;
 }
@@ -438,7 +442,7 @@ static void block_state(bool enable)
 {
     block* falling = state.falling;
     block* ghost = state.ghost;
-    for (int i = 0; i < MINO_CNT; i++)
+    for (uint8_t i = 0; i < MINO_CNT; i++)
     {
         field_unit* space = &state.playfield[falling->row + falling->offsets[i][0]][falling->col + falling->offsets[i][1]];
         field_unit* gspace = &state.playfield[ghost->row + ghost->offsets[i][0]][ghost->col + ghost->offsets[i][1]];
@@ -463,12 +467,12 @@ static void block_state(bool enable)
     }
 }
 
-static bool check_shift(block* falling, short row_s, short col_s)
+static bool check_shift(block* falling, int8_t row_s, int8_t col_s)
 {
-    for (int i = 0; i < MINO_CNT; i++)
+    for (int8_t i = 0; i < MINO_CNT; i++)
     {
-        int row_sel = falling->row + falling->offsets[i][0] + row_s;
-        int col_sel = falling->col + falling->offsets[i][1] + col_s;
+        int8_t row_sel = falling->row + falling->offsets[i][0] + row_s;
+        int8_t col_sel = falling->col + falling->offsets[i][1] + col_s;
         if (row_sel < 0 || row_sel >= ROW_CNT || col_sel < 0 || col_sel >= COL_CNT)
         {
             return false;
@@ -487,7 +491,7 @@ static bool check_shift(block* falling, short row_s, short col_s)
     return true;
 }
 
-static void shift_block(block* falling, short row_s, short col_s)
+static void shift_block(block* falling, int8_t row_s, int8_t col_s)
 {
     if (falling == NULL || !check_shift(falling, row_s, col_s))
     {
@@ -504,7 +508,7 @@ static void shift_block(block* falling, short row_s, short col_s)
     state.set_grace_count = SET_BLOCK_GRACE_PERIOD;
 }
 
-void game_init(int level_select)
+void game_init(uint8_t level_select)
 {
     srand((unsigned int)time(NULL));
     state.falling = NULL;
@@ -525,9 +529,9 @@ void game_init(int level_select)
     state.paused = false;
     state.das = DAS_DELAY;
     state.das_startup = DAS_STARTUP;
-    for (int i = 0; i < ROW_CNT; i++)
+    for (uint8_t i = 0; i < ROW_CNT; i++)
     {
-        for(int j = 0; j < COL_CNT; j++)
+        for(uint8_t j = 0; j < COL_CNT; j++)
         {
             state.playfield[i][j].has_block = false;
             state.playfield[i][j].is_falling = false;
@@ -545,16 +549,16 @@ void game_init(int level_select)
     }
 }
 
-static int calc_step(int slevel)
+static uint8_t calc_step(uint8_t slevel)
 {
     double level = (double)slevel;
     double lpf = pow((0.8 - ((level - 1) * 0.007)),level - 1.0);
-    return (int)(lpf * 60);
+    return (uint8_t)(lpf * 60);
 }
 
-static bool check_line(short row)
+static bool check_line(int8_t row)
 {
-    for (int i = 1; i < COL_CNT - 1; i++)
+    for (uint8_t i = 1; i < COL_CNT - 1; i++)
     {
         if (!state.playfield[row][i].has_block)
         {
@@ -564,11 +568,11 @@ static bool check_line(short row)
     return true;
 }
 
-static int clear_lines()
+static uint32_t clear_lines()
 {
-    int bdx = 0;
-    int edx = -1;
-    for (int i = 0; i < ROW_CNT - 1; i++)
+    int8_t bdx = 0;
+    int8_t edx = -1;
+    for (int8_t i = 0; i < ROW_CNT - 1; i++)
     {
         if (bdx == 0 && check_line(i))
         {
@@ -580,10 +584,10 @@ static int clear_lines()
             edx = i;
         }
     }
-    int cleared = 1 + edx - bdx;
-    for (int i = bdx-1; i >= 0; i--)
+    uint32_t cleared = 1 + edx - bdx;
+    for (int8_t i = bdx-1; i >= 0; i--)
     {
-        for (int j = 1; j < COL_CNT-1; j++)
+        for (int8_t j = 1; j < COL_CNT-1; j++)
         {
             state.playfield[edx][j] = state.playfield[i][j];
         }
@@ -592,9 +596,9 @@ static int clear_lines()
     return cleared;
 }
 
-static void calc_score(int lines)
+static void calc_score(int32_t lines)
 {
-    int score_add = 0;
+    int32_t score_add = 0;
     bool b2b_prev = state.b2b;
     switch (lines)
     {
@@ -676,12 +680,12 @@ static void calc_score(int lines)
     }
     if (b2b_prev)
     {
-        score_add = (int)((double)score_add * 1.5);
+        score_add = (int32_t)((double)score_add * 1.5);
     }
     state.score += score_add;
 }
 
-static int detect_tspin()
+static t_spin_state detect_tspin()
 {
     if (!state.last_rotate || state.falling->type != BLOCK_T)
     {
@@ -689,21 +693,21 @@ static int detect_tspin()
     }
 
     // t block corners, front corners are first two
-    short corners[4][2] = {{-1,-1},{-1,1},{1,1},{1,-1}};
+    int8_t corners[4][2] = {{-1,-1},{-1,1},{1,1},{1,-1}};
 
     // make sure front lines up with falling t block
-    for (int i = 0; i < (int)state.falling->orient; i++)
+    for (block_orient i = 0; i < state.falling->orient; i++)
     {
-        for (int j = 0; j < 4; j++)
+        for (uint8_t j = 0; j < 4; j++)
         {
             swap(&corners[j][0], &corners[j][1]);
             corners[j][1] *= -1;
         }
     }
 
-    int fronts = 0;
-    int backs = 0;
-    for (int i = 0; i < 4; i++)
+    uint8_t fronts = 0;
+    uint8_t backs = 0;
+    for (uint8_t i = 0; i < 4; i++)
     {
         field_unit unit = state.playfield[state.falling->row + corners[i][0]][state.falling->col + corners[i][1]];
         if (unit.has_block || unit.is_wall)
@@ -734,15 +738,15 @@ static int detect_tspin()
 static void set_block()
 {
     block* falling = state.falling;
-    int drop_amt = calc_ghost_offset();
+    int8_t drop_amt = calc_ghost_offset();
     shift_block(state.falling, drop_amt, 0);
-    for (int i = 0; i < MINO_CNT; i++)
+    for (uint8_t i = 0; i < MINO_CNT; i++)
     {
         field_unit* unit = &state.playfield[falling->row + falling->offsets[i][0]][falling->col + falling->offsets[i][1]];
         unit->is_falling = false;
     }
     state.tspin_state = detect_tspin();
-    int lines = clear_lines();
+    uint32_t lines = clear_lines();
     calc_score(lines);
     state.lines += lines;
 
@@ -755,9 +759,9 @@ static void set_block()
     spawn_block(BLOCK_NULL);
 }
 
-static short calc_ghost_offset()
+static int8_t calc_ghost_offset()
 {
-    for(short i = 1; i < ROW_CNT; i++)
+    for(int8_t i = 1; i < ROW_CNT; i++)
     {
         if (!check_shift(state.falling, i, 0))
         {
@@ -908,19 +912,19 @@ bool game_loop()
 
     // draw screen
     TSW_DrawTextYX("", 1, 13);
-    for (int i = 0; i < ROW_CNT - 1; i++)
+    for (uint8_t i = 0; i < ROW_CNT - 1; i++)
     {
-        for (int j = 1; j < COL_CNT - 1; j++)
+        for (uint8_t j = 1; j < COL_CNT - 1; j++)
         {
             if (state.playfield[i][j].has_block)
             {
-                TSW_ChangeBGColor((int)state.playfield[i][j].color);
+                TSW_ChangeBGColor(state.playfield[i][j].color);
                 TSW_DrawBlock();
                 TSW_ClearColor();
             }
             else if (state.playfield[i][j].is_ghost)
             {
-                TSW_ChangeFGColor((int)state.playfield[i][j].color);
+                TSW_ChangeFGColor(state.playfield[i][j].color);
                 TSW_DrawGhost();
                 TSW_ClearColor();
             }
@@ -987,11 +991,11 @@ static block init_block(block_type type)
             new_block.color = 11;
             break; 
     }
-    memcpy(&new_block.offsets[0][0], &BLOCK_OFFSETS[new_block.type], sizeof(short) * MINO_CNT * 2);
+    memcpy(&new_block.offsets[0][0], &BLOCK_OFFSETS[new_block.type], sizeof(int8_t) * MINO_CNT * 2);
     return new_block;
 }
 
-static void draw_display_block(int row_origin, block_type type)
+static void draw_display_block(int8_t row_origin, block_type type)
 {
     TSW_DrawTextYX("         ", row_origin - 1, 3);
     TSW_DrawTextYX("         ", row_origin, 3);
@@ -1001,8 +1005,8 @@ static void draw_display_block(int row_origin, block_type type)
         return;
     }
     block n = init_block(type);
-    TSW_ChangeBGColor((int)n.color);
-    for (int i = 0; i < MINO_CNT; i++)
+    TSW_ChangeBGColor(n.color);
+    for (uint8_t i = 0; i < MINO_CNT; i++)
     {
         if (type == BLOCK_I || type == BLOCK_O)
         {

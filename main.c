@@ -31,7 +31,7 @@ typedef struct main_state_impl
 {
     pthread_t input_thread;
     screen_state screen;
-    int level_select;
+    uint8_t level_select;
 } main_state;
 static main_state state;
 
