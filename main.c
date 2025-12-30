@@ -25,7 +25,7 @@ typedef enum screen_state_impl
 
 static void sig_handler(int sig, siginfo_t* info, void* ucontext);
 static void main_shutdown();
-static void main_init();
+static void main_init(int ac, char** av);
 
 typedef struct main_state_impl
 {
@@ -45,7 +45,7 @@ static void main_shutdown()
     TSW_ScreenSwitchBuffer();
 }
 
-static void main_init()
+static void main_init(int ac, char** av)
 {
     if (-1 == sem_init(&input_ready, 0, 0))
     {
@@ -53,7 +53,21 @@ static void main_init()
         abort();
     }
 
-    pthread_create(&state.input_thread, NULL, &input_thread_func, NULL);
+    int eventnum = DEFAULT_EVENT_NUM;
+    if (ac == 3 && av[1][1] == 'e')
+    {
+        eventnum = atoi(av[2]);
+    }
+    else if (ac == 2 && av[1][1] == 'h')
+    {
+        printf("Usage: %s [-e eventNum] [-h]\n", av[0]);
+        printf("  -e eventNum : Specify the event number of the keyboard device (default %d)\n", DEFAULT_EVENT_NUM);
+        printf("                You can find this number by running 'evtest'\n");
+        printf("  -h          : Show this help message\n");
+        exit(0);
+    }
+
+    pthread_create(&state.input_thread, NULL, &input_thread_func, (void*)&eventnum);
 
     // wait for input to finish setup
     while(sem_wait(&input_ready) == -1 && errno == EINTR)
@@ -175,7 +189,7 @@ static void main_loop()
 
 int main(int ac, char** av)
 {
-    main_init();
+    main_init(ac, av);
     main_loop();
     main_shutdown();
     return 0;

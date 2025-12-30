@@ -38,9 +38,9 @@ static void frame_passed(int sig, siginfo_t* info, void* ucontext)
     memcpy(state.keys_prev, state.keys, KEY_COUNT);
 }
 
-void* input_thread_func()
+void* input_thread_func(void *eventnum)
 {
-    input_init();
+    input_init(*(int*)eventnum);
     if (-1 == sem_post(&input_ready))
     {
         perror("sem_post");
@@ -50,7 +50,7 @@ void* input_thread_func()
     return NULL;
 }
 
-void input_init()
+void input_init(int eventnum)
 {
     // setup frame updater
     struct sigaction act = {0};
@@ -84,10 +84,14 @@ void input_init()
         abort();
     }
 
+    char keyboard_path[KEYBOARD_PATH_MAX];
+    snprintf(keyboard_path, KEYBOARD_PATH_MAX, "%s%d", KEYBOARD_PATH, eventnum);
+
     // setup keyboard input
-    state.input_fd = fopen(KEYBOARD_PATH, "r");
+    state.input_fd = fopen(keyboard_path, "r");
     if (state.input_fd == NULL)
     {
+        input_shutdown();
         perror("Keyboard Open");
         abort();
     }
@@ -102,7 +106,10 @@ void input_init()
 void input_shutdown()
 {
     tcsetattr(TERM_FD, TCSAFLUSH, &state.term_restore);
-    fclose(state.input_fd);
+    if (state.input_fd != NULL)
+    {
+        fclose(state.input_fd);
+    }
     state.looping = false;
 }
 
